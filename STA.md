@@ -4,10 +4,10 @@
 #### STA的四个目标
 #### Clock Character
 #### Clock Define
+#### 时序路径
 ****
 ## 什么是STA
-静态时序分许通俗来讲时检查我们的设计是否满足时序约束的要求。所谓静态与动态相对应，我们并不是通过一种实时的仿真来观察时序路径。而是通过电路模型的计算方式得到的。上面又提到了时序路径，所谓时序路径可以理解为信号在一个时钟周期内所走过的路径。主要有四种路径：从芯片外部的input port 到第一级时序单元（Sequential Cell）的路径；从一个时序单元的输出，到另一个时序单元的输入。从时序单元的输出到芯片外部的output port。或者从芯片外部的input port通过一些组合逻辑直接连接到了output port。  
-![timing_path](timing_path.png)
+静态时序分许通俗来讲时检查我们的设计是否满足时序约束的要求。所谓静态与动态相对应，我们并不是通过一种实时的仿真来观察时序路径。而是通过电路模型的计算方式得到的。
 
 ## STA的四个目标
 那么STA会检查什么呢？根据查找到的资料，STA会检查设计的四个方面。  
@@ -40,4 +40,30 @@ create_clock -name clk \
 set_clock_latecy 1.0 [get_clocks [list clk]]
 set_clock_transition 0.1 0.15 [get_clocks [list clk]]
 set_clock_uncertainty 0.2 -setup [get_clocks [list clk]]
-set_clock_uncertainty 0.2 -hold [get_clocks [list clk]]
+set_clock_uncertainty 0.1 -hold [get_clocks [list clk]]
+````
+想一想为什么clock_uncertainty 对于 setup 和 hold 不一样。
+## 时序路径
+上面又提到了时序路径，所谓时序路径可以理解为信号在一个时钟周期内所走过的路径。主要有四种路径：从芯片外部的input port 到第一级时序单元（Sequential Cell）的路径；从一个时序单元的输出，到另一个时序单元的输入。从时序单元的输出到芯片外部的output port。或者从芯片外部的input port通过一些组合逻辑直接连接到了output port。  
+![timing_path](timing_path.png)  
+时序路径的起点包括：input ports, Clock pins of sequential cell  
+时序路径的重点包括: output ports, data pins of sequential cell  
+## setup check
+data_arrival_time = clk_latency + clk_path_delay + ck_to_q + logic_delay  
+
+data_required_time = clk_period + clk_latency + clk_path_delay - dff_setup - clk_uncertainty  
+
+ck_to_q + logic_delay <= clk_period + clk_skew - dff_setup - clk_uncertainty  
+## hold check
+data_arrival_time = clk_latency + clk_path_delay + ck_to_q + logic_delay  
+
+data_required_time = clk_latency + clk_path_delay + dff_hold + clk_uncertainty  
+
+ck_to_q + logic_delay >= clk_skew + dff_hold + clk_uncertainty  
+## OCV
+  On-chip-Variation: 同一颗芯片，不同位置的cell的PVT不一致。更加悲观的一种方法。
+## CPPR
+Common-Path-Pessimism-Remove: clock 路径上，相同的cell的delay是一样的。
+## 时序例外
+1. set_false_path: 伪路径，STA时不分析的路径。通常在跨时钟域处理的时候将两个时钟间的路径设为伪路径。
+2. set_multy_path
